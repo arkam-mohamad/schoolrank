@@ -1,0 +1,86 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+const int NUM_BIO_CLASSES = 3;
+const int NUM_MATH_CLASSES = 5;
+const int STUDENTS_PER_CLASS = 40;
+
+struct Student {
+    string name;
+    vector<int> marks;
+    int total_marks;
+    int rank;
+    int class_rank;
+};
+
+vector<Student> read_student_data(string file_name) {
+    ifstream file(file_name);
+    vector<Student> students;
+    string name;
+    while (file >> name) {
+        Student student;
+        student.name = name;
+        for (int i = 0; i < 3; i++) {
+            int mark;
+            file >> mark;
+            student.marks.push_back(mark);
+        }
+        student.total_marks = accumulate(student.marks.begin(), student.marks.end(), 0);
+        students.push_back(student);
+    }
+    return students;
+}
+
+void rank_students(vector<Student>& students) {
+    sort(students.begin(), students.end(), [](const Student& a, const Student& b) {
+        return a.total_marks > b.total_marks;
+    });
+    int rank = 1;
+    for (auto& student : students) {
+        student.rank = rank++;
+    }
+    for (int i = 0; i < NUM_BIO_CLASSES * STUDENTS_PER_CLASS; i += STUDENTS_PER_CLASS) {
+        sort(students.begin() + i, students.begin() + i + STUDENTS_PER_CLASS, [](const Student& a, const Student& b) {
+            return a.total_marks > b.total_marks;
+        });
+        int class_rank = 1;
+        for (int j = i; j < i + STUDENTS_PER_CLASS; j++) {
+            students[j].class_rank = class_rank++;
+        }
+    }
+    for (int i = NUM_BIO_CLASSES * STUDENTS_PER_CLASS; i < students.size(); i += STUDENTS_PER_CLASS) {
+        sort(students.begin() + i, students.begin() + i + STUDENTS_PER_CLASS, [](const Student& a, const Student& b) {
+            return a.total_marks > b.total_marks;
+        });
+        int class_rank = 1;
+        for (int j = i; j < i + STUDENTS_PER_CLASS; j++) {
+            students[j].class_rank = class_rank++;
+        }
+    }
+}
+
+void print_student_ranks(const vector<Student>& students) {
+    ofstream file("ranks.txt");
+    for (const auto& student : students) {
+        cout << "Student name: " << student.name << endl;
+        cout << "Total marks: " << student.total_marks << endl;
+        cout << "School rank: " << student.rank << endl;
+        cout << "Class rank: " << student.class_rank << endl << endl;
+        file << student.name << " " << student.total_marks << " " << student.rank << " " << student.class_rank << endl;
+    }
+}
+
+int main() {
+    vector<Student> bio_students = read_student_data("bio_results.txt");
+    vector<Student> math_students = read_student_data("math_results.txt");
+    vector<Student> students;
+    students.insert(students.end(), bio_students.begin(), bio_students.end());
+    students.insert(students.end(), math_students.begin(), math_students.end());
+    rank_students(students);
+    print_student_ranks(students);
+    return 0;
+}
